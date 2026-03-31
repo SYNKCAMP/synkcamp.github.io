@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynKup</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      height: 100dvh;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+      padding: 12px 28px; border-radius: 999px; font-size: 0.9rem; font-weight: 600;
+      background: rgba(20, 20, 20, 0.92); color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      backdrop-filter: blur(12px);
+      z-index: 9999; pointer-events: none;
+      transition: top 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+      white-space: nowrap;
+    }
+    .toast.show { top: 24px; }
+
+    /* ── Hero Shell ── */
+    .hero-shell {
+      position: relative; width: 100vw; height: 100dvh; min-height: 100svh;
+      display: flex; flex-direction: column; overflow: hidden;
+      background: #000; color: #fff;
+    }
+
+    /* ── Grain ── */
+    .grain-overlay {
+      position: absolute; inset: 0; z-index: 2;
+      pointer-events: none; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat; background-size: 200px;
+    }
+
+    /* ── Glow Spots ── */
+    .glow-spot { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1; }
+    .glow-tl {
+      top: -120px; left: -80px; width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 68%);
+    }
+    .glow-br {
+      bottom: -100px; right: -60px; width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 65%);
+    }
+
+    /* ── Sparkles ── */
+    .sparkles { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
+    .sp {
+      position: absolute; width: 3px; height: 3px; border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      animation: spFloat 7s ease-in-out infinite;
+    }
+    .sp-1  { top:12%; left:78%; animation-delay:0s;   animation-duration:6s;   }
+    .sp-2  { top:28%; left:91%; animation-delay:1.2s; animation-duration:7s;   }
+    .sp-3  { top:55%; left:82%; animation-delay:2.4s; animation-duration:5.5s; }
+    .sp-4  { top:72%; left:88%; animation-delay:0.6s; animation-duration:8s;   }
+    .sp-5  { top:8%;  left:68%; animation-delay:3.1s; animation-duration:6.5s; }
+    .sp-6  { top:40%; left:94%; animation-delay:1.8s; animation-duration:7.5s; }
+    .sp-7  { top:65%; left:62%; animation-delay:4.2s; animation-duration:6s;   }
+    .sp-8  { top:22%; left:58%; animation-delay:2.9s; animation-duration:9s;   }
+    .sp-9  { top:48%; left:72%; animation-delay:0.3s; animation-duration:5s;   }
+    .sp-10 { top:85%; left:76%; animation-delay:5s;   animation-duration:7s;   }
+    @keyframes spFloat {
+      0%   { opacity:0; transform:translateY(0) scale(0); }
+      20%  { opacity:1; transform:translateY(-12px) scale(1); }
+      60%  { opacity:0.7; transform:translateY(-40px) scale(1.3); filter:blur(0.5px); }
+      100% { opacity:0; transform:translateY(-72px) scale(0); }
+    }
+
+    /* ── Navbar ── */
+    .navbar {
+      position: relative; z-index: 50;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(16px); background: rgba(0,0,0,0.35);
+      flex-shrink: 0; width: 100%;
+    }
+    .navbar-content {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 90%; max-width: 1100px; margin: 0 auto; padding: 0.25rem 0;
+    }
+    .logo-img {
+      height: 3.5rem; width: auto; object-fit: contain; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .logo-img:hover { opacity: 0.75; }
+    .nav-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+    .nav-signin {
+      padding: 0.5rem 1.25rem; border-radius: 999px; font-size: 0.875rem;
+      font-weight: 500; cursor: pointer; text-decoration: none;
+      color: rgba(255,255,255,0.75); background: transparent; border: none;
+      font-family: inherit; transition: background 0.2s;
+    }
+    .nav-signin:hover { background: rgba(255,255,255,0.07); color: white; }
+
+    .nav-register {
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      padding: 0.5rem 1.375rem; border-radius: 999px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      background: white; color: black; border: none; font-family: inherit;
+      box-shadow: 0 4px 16px rgba(255,255,255,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .nav-register svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .nav-register:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(255,255,255,0.16); }
+    .nav-register:hover svg { transform: translateX(3px); }
+
+    /* ── Centered SynKup Text ── */
+    .hero-content-centering {
+      position: absolute; inset: 0; z-index: 4;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .synkup-title {
+      font-size: clamp(5rem, 11.5vw, 17rem);
+      font-weight: 700; letter-spacing: -0.05em;
+      user-select: none; line-height: 1.2; margin: 0;
+      color: transparent;
+      text-shadow: 0 0 2px rgba(255,255,255,0.15);
+      background-image: radial-gradient(
+        circle 400px at var(--x, 50%) var(--y, 50%),
+        rgba(255,255,255,1) 0%,
+        rgba(255,255,255,0.3) 40%,
+        transparent 60%
+      );
+      background-clip: text;
+      -webkit-background-clip: text;
+      transition: background-image 0.05s ease-out;
+    }
+
+    /* ── Search Bar (bottom) ── */
+    .hero-body {
+      position: relative; z-index: 10; flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding: 0 1.5rem;
+    }
+    .search-wrap {
+      width: min(620px, calc(100% - 2rem));
+      margin-bottom: clamp(1rem, 3.5vh, 2.25rem);
+      opacity: 0;
+      animation: revealUp 0.75s cubic-bezier(0.16,1,0.3,1) 0.68s forwards;
+    }
+    .search-bar {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.625rem 0.625rem 0.625rem 1.25rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07);
+      transition: box-shadow 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+    .search-bar:focus-within {
+      border-color: rgba(249,115,22,0.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 3px rgba(249,115,22,0.08);
+    }
+    .search-icon { width: 17px; height: 17px; flex-shrink: 0; color: rgba(255,255,255,0.45); }
+    .search-input {
+      flex: 1; background: transparent; outline: none; border: none;
+      font-size: 0.9rem; font-family: inherit; color: white; cursor: pointer;
+    }
+    .search-input::placeholder { color: rgba(255,255,255,0.3); }
+    .search-btn {
+      padding: 0.6rem 1.375rem; border-radius: 999px; border: none;
+      font-size: 0.84rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
+      background: white; color: black;
+      box-shadow: 0 4px 12px rgba(255,255,255,0.12);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .search-btn:hover { transform: scale(1.04); }
+
+    @keyframes revealUp {
+      from { opacity: 0; transform: translateY(22px); filter: blur(4px); }
+      to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+    }
+
+    @media (max-width: 768px) {
+      .search-wrap { width: calc(100% - 1.25rem); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">Coming Soon 🚀</div>
+
+  <section class="hero-shell">
+    <div class="grain-overlay"></div>
+    <div class="grain-overlay"></div>
+    <div class="grain-overlay"></div>
+
+    <div class="glow-spot glow-tl" aria-hidden="true"></div>
+    <div class="glow-spot glow-br" aria-hidden="true"></div>
+
+    <div class="sparkles" aria-hidden="true">
+      <span class="sp sp-1"></span><span class="sp sp-2"></span>
+      <span class="sp sp-3"></span><span class="sp sp-4"></span>
+      <span class="sp sp-5"></span><span class="sp sp-6"></span>
+      <span class="sp sp-7"></span><span class="sp sp-8"></span>
+      <span class="sp sp-9"></span><span class="sp sp-10"></span>
+    </div>
+
+    <!-- Centered SynKup -->
+    <div class="hero-content-centering">
+      <h1 class="synkup-title" id="synkupText">SynKup</h1>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-content">
+        <div class="nav-logo">
+          <img src="assets/logo.png" alt="SynKup" class="logo-img"
+               onerror="this.style.display='none'" />
+        </div>
+        <div class="nav-actions">
+          <button class="nav-signin" onclick="showToast()">Sign In</button>
+          <button class="nav-register" onclick="showToast()">
+            Register
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Search bar at bottom -->
+    <div class="hero-body">
+      <div class="search-wrap">
+        <div class="search-bar" onclick="showToast()">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <span class="search-input" style="color: rgba(255,255,255,0.3);">Coming Soon...</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // ── Toast ──
+    let toastTimer = null;
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ── Mouse-follow glow on SynKup text ──
+    const titleEl = document.getElementById('synkupText');
+    document.addEventListener('mousemove', (e) => {
+      const rect = titleEl.getBoundingClientRect();
+      titleEl.style.setProperty('--x', (e.clientX - rect.left) + 'px');
+      titleEl.style.setProperty('--y', (e.clientY - rect.top) + 'px');
+    });
+  </script>
+</body>
+</html>
